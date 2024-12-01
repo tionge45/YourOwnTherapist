@@ -4,16 +4,20 @@ import lombok.Getter;
 import lombok.Setter;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.therapist.bot.api.APIClient;
 import org.therapist.bot.commands.EmotionCommand;
 import org.therapist.bot.commands.LanguageCommand;
 import org.therapist.bot.messages.Translator;
 import org.therapist.bot.ui.LanguageMarkUp;
+
+import java.util.concurrent.ExecutionException;
 
 @Getter
 @Setter
 public class BotLogic {
     private final EmotionCommand emotionCommand = new EmotionCommand();
     private final LanguageCommand languageCommand = new LanguageCommand();
+    private final APIClient apiClient = new APIClient();
 
     // Handle /start command
     public SendMessage handleStartCommand(Long chatId) {
@@ -59,8 +63,20 @@ public class BotLogic {
     }
 
 
-    // Generate response after selecting emotion
-    public String generateEmotionResponse(String emotionName, String language) {
-        return emotionCommand.generateEmotionResponse(emotionName, language);  // Response after emotion is selected
+    public String generateEmotionResponse(String emotionName, String language)
+    {
+        try {
+            String response = apiClient.fetchResponse(emotionName, language);
+            System.out.println("Generated response: " + response);
+            return response;
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return "Sorry, I couldn't generate a response. Please try again.";
+        } catch (Exception e){
+            e.printStackTrace();
+            return "An unexpected error occurred. Please try again.";
+        }
     }
+
 }
+

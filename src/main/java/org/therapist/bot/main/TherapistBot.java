@@ -3,12 +3,8 @@ package org.therapist.bot.main;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.therapist.bot.logic.BotLogic;
-import org.therapist.bot.commands.EmotionCommand;
-import org.therapist.bot.commands.LanguageCommand;
-
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -20,65 +16,87 @@ public class TherapistBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
 
-            if (update.hasMessage() && update.getMessage().hasText()) {
-                String messageText = update.getMessage().getText();
-                Long chatId = update.getMessage().getChatId();
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            handleTextMessage(update);
+        }
 
-                try {
-                    switch (messageText) {
-                        case "/start", "/language":
-                            SendMessage response = botLogic.handleStartCommand(chatId);
-                            execute(response);
-                            break;
+        if (update.hasCallbackQuery()) {
+            handleCallbackQuery(update);
+        }
+    }
 
-                        case "/emotion":
-                            SendMessage emotionResponse = botLogic.handleEmotionCommand(
-                                    botLogic.getLanguageCommand().getLanguage(), chatId);
-                            execute(emotionResponse);
-                            break;
+    private void handleTextMessage(Update update) {
+        String messageText = update.getMessage().getText();
+        Long chatId = update.getMessage().getChatId();
 
-                        default:
+        try {
+            switch (messageText) {
+                case "/start", "/language":
+                    SendMessage response = botLogic.handleStartCommand(chatId);
+                    execute(response);
+                    break;
 
-                            SendMessage unknownResponse = new SendMessage();
-                            unknownResponse.setChatId(chatId);
-                            unknownResponse.setChatId("Sorry, I didn't understand that. Please use /start, /language, or /emotion.");
-                            execute(unknownResponse);
-                            break;
-                    }
-                } catch(TelegramApiException e){
-                    e.printStackTrace();
+                case "/emotion":
+                    SendMessage emotionResponse = botLogic.handleEmotionCommand(
+                            botLogic.getLanguageCommand().getLanguage(), chatId);
+                    execute(emotionResponse);
+                    break;
 
-                    }
-                }
+                default:
 
-            if (update.hasCallbackQuery()) {
-                String callbackData = update.getCallbackQuery().getData();
-                Long chatId = update.getCallbackQuery().getMessage().getChatId();
+                    SendMessage unknownResponse = new SendMessage();
+                    unknownResponse.setChatId(chatId);
+                    unknownResponse.setChatId("Sorry, I didn't understand that. Please use /start, /language, or /emotion.");
+                    execute(unknownResponse);
+                    break;
+            }
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
 
-                try {
+    private void handleCallbackQuery(Update update) {
+        String callbackData = update.getCallbackQuery().getData();
+        System.out.println("Received callback data: " + callbackData);
 
-                    if (callbackData.startsWith("LANGUAGE_")) {
-                        String language = callbackData.equals("LANGUAGE_EN") ? "EN" : "RU";
-                        SendMessage response = botLogic.handleLanguageSelection(language, chatId);
-                        execute(response);
-                    } else if (callbackData.startsWith("EMOTION_")) {
-                        String emotionName = callbackData.substring("EMOTION_".length());
-                        String language = botLogic.getLanguageCommand().getLanguage();
-                        String responseText = botLogic.generateEmotionResponse(emotionName, language);
+        Long chatId = update.getCallbackQuery().getMessage().getChatId();
 
-                        SendMessage response = new SendMessage();
-                        response.setChatId(chatId);
-                        response.setText(responseText);
-                        execute(response);
-                    }
-                } catch(TelegramApiException e){
-                    e.printStackTrace();
+        try {
+
+            if (callbackData.startsWith("LANGUAGE_")) {
+                String language = callbackData.equals("LANGUAGE_EN") ? "EN" : "RU";
+                SendMessage response = botLogic.handleLanguageSelection(language, chatId);
+                execute(response);
+                if (callbackData.startsWith("EMOTION_")) {
+                    String emotionName = callbackData.substring("EMOTION_".length());
+                    System.out.println("Extracted emotion: " + emotionName);
+
+                    // Fetch the current language from BotLogic
+                    String currentLanguage = botLogic.getLanguageCommand().getLanguage();
+
+                    // Generate the response using both language and emotion
+                    String responseText = botLogic.generateEmotionResponse(emotionName, currentLanguage);
+
+                    SendMessage messageResponse = new SendMessage();
+                    response.setChatId(chatId);
+                    response.setText(responseText);
+                    execute(messageResponse);
                 }
             }
+                else {
+                SendMessage response = new SendMessage();
+                response.setChatId(chatId);
+                response.setText("Sorry, something went wrong. Please try again.");
+                execute(response);
+
+            }
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
 
-        @Override
+    @Override
     public String getBotUsername() {
         return "MyTherapistBot"; // Replace with your bot username
     }
@@ -100,3 +118,4 @@ public class TherapistBot extends TelegramLongPollingBot {
         return readBotToken();
     }
 }
+
