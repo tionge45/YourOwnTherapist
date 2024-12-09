@@ -1,8 +1,10 @@
 package org.therapist.bot.commands;
 
+import lombok.Getter;
+
 import java.util.Locale;
 
-
+@Getter
 public class LanguageCommand {
     private String selectedLanguage = "EN"; // Default language
 

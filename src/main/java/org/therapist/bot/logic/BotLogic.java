@@ -1,82 +1,71 @@
 package org.therapist.bot.logic;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.therapist.bot.api.APIClient;
-import org.therapist.bot.commands.EmotionCommand;
 import org.therapist.bot.commands.LanguageCommand;
-import org.therapist.bot.messages.Translator;
-import org.therapist.bot.ui.LanguageMarkUp;
+import org.therapist.bot.fileutils.FileReaderUtil;
+import org.therapist.bot.fileutils.FileUtils;
+import org.therapist.bot.utilities.Emotion;
 
-import java.util.concurrent.ExecutionException;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 @Getter
-@Setter
 public class BotLogic {
-    private final EmotionCommand emotionCommand = new EmotionCommand();
+    private final Map<String, List<String>> englishResponses;
+    private final Map<String, List<String>> russianResponses;
+    private final Random random = new Random();
     private final LanguageCommand languageCommand = new LanguageCommand();
-    private final APIClient apiClient = new APIClient();
+
+    public BotLogic() {
+        englishResponses = FileUtils.loadResponses("C:\\JAVA\\MyOwnTherapist\\emotion_responses_english");
+        russianResponses = FileUtils.loadResponses("C:\\JAVA\\MyOwnTherapist\\emotion_responses_russian");
+    }
 
     // Handle /start command
-    public SendMessage handleStartCommand(Long chatId) {
-        SendMessage response = new SendMessage();
-        response.setChatId(chatId);
-        response.setText("Welcome to My Therapist Bot! " +
-                "Choose your preferred Language: English or Русский.");
-
-        // Create language selection buttons
-        InlineKeyboardMarkup languageMarkup = new LanguageMarkUp().getLanguageMarkUp();
-        response.setReplyMarkup(languageMarkup);
-
-        return response;
+    public SendMessage handleStartCommand(Long chatId, String username) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText("Hello @" + username +
+                ", Welcome to My Therapist Bot! Choose your preferred Language:");
+        message.setReplyMarkup(ButtonFactory.getLanguageButtons());
+        return message;
     }
 
     // Handle language selection
-    public SendMessage handleLanguageSelection(String language, Long chatId) {
+    public SendMessage handleLanguageSelection(String language, Long chatId, String username) {
         languageCommand.setLanguage(language);
-        String greeting = Translator.getTranslation(language, "start");
 
-        SendMessage response = new SendMessage();
-        response.setChatId(chatId);
-        response.setText(greeting);
+        String greetingText = (language.equalsIgnoreCase("RU"))
+                ? "Здравствуйте, @" + username + "! Добро пожаловать в My Therapist Bot."
+                : "Hello, @" + username + "! Welcome to My Therapist Bot.";
 
-        // Show emotion selection after language greeting
-        InlineKeyboardMarkup emotionKeyboard = emotionCommand.createEmotionKeyboard(language);
-        response.setReplyMarkup(emotionKeyboard);
+        String promptText = (language.equalsIgnoreCase("RU"))
+                ? "Отлично! Как вы себя чувствуете сейчас? Выберите из вариантов ниже:"
+                : "Great! Now, how are you feeling right now? Choose from the options below:";
 
-        return response;
+        // Greeting message
+        SendMessage greetingMessage = new SendMessage();
+        greetingMessage.setChatId(chatId);
+        greetingMessage.setText(greetingText);
+
+        // Emotion prompt message
+        SendMessage emotionPromptMessage = new SendMessage();
+        emotionPromptMessage.setChatId(chatId);
+        emotionPromptMessage.setText(promptText);
+        emotionPromptMessage.setReplyMarkup(ButtonFactory.getEmotionButtons(language));
+
+        // Send messages in sequence
+        return emotionPromptMessage; // Just return the emotion prompt message
     }
 
-    // Handle /emotion command
-    public SendMessage handleEmotionCommand(String language, Long chatId) {
-        SendMessage response = new SendMessage();
-        response.setChatId(chatId);
-        response.setText("How are you feeling today?");
-
-        // Create emotion buttons based on the selected language
-        InlineKeyboardMarkup emotionKeyboard = emotionCommand.createEmotionKeyboard(language);
-        response.setReplyMarkup(emotionKeyboard);
-
-        return response;
+    // Handle emotion selection and provide a response
+    public String generateEmotionResponse(String emotion, String language) {
+        return FileReaderUtil.readResponseFromFiles(emotion, language);
     }
 
-
-    public String generateEmotionResponse(String emotionName, String language)
-    {
-        try {
-            String response = apiClient.fetchResponse(emotionName, language);
-            System.out.println("Generated response: " + response);
-            return response;
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            return "Sorry, I couldn't generate a response. Please try again.";
-        } catch (Exception e){
-            e.printStackTrace();
-            return "An unexpected error occurred. Please try again.";
-        }
+    public LanguageCommand getLanguageCommand() {
+        return languageCommand;
     }
-
 }
-
