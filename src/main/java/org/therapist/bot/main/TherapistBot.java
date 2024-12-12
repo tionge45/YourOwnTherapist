@@ -1,10 +1,10 @@
 package org.therapist.bot.main;
 
-import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.therapist.bot.emotionstats.EmotionStats;
 import org.therapist.bot.logic.BotLogic;
 
 import java.io.BufferedReader;
@@ -31,17 +31,17 @@ public class TherapistBot extends TelegramLongPollingBot {
 
         try {
             SendMessage response;
+            System.out.println("Received message: " + messageText); // Debugging line
             switch (messageText) {
-                case "/start", "language" -> response = botLogic.handleStartCommand(chatId, username);
-                //case "/language" -> response = botLogic.handleLanguageSelection(language, chatId, username);
-                case "/emotion", "/affirmation", "activities"-> {
-                    response = botLogic.handleLanguageSelection(language, chatId, update.getMessage().
-                            getFrom().getUserName());
-                }
+                case "/start" -> response = botLogic.handleStartCommand(chatId, username);
+                case "/language" -> response = botLogic.handleStartCommand(chatId, username);
+                case "/emotions" -> response = botLogic.handleLanguageSelection(language, chatId, username);
+                case "/general_stats" -> response = botLogic.handleGeneralStatsCommand(chatId);
+                case "/daily_stats" -> response = botLogic.handleDailyStatsCommand(chatId);
                 default -> {
                     response = new SendMessage();
                     response.setChatId(chatId);
-                    response.setText("Sorry, I didn't understand that. Please use /start, /language, or /emotion.");
+                    response.setText("Sorry, I didn't understand that. Please use /start, /language, or /emotions.");
                 }
             }
             execute(response);
@@ -55,6 +55,8 @@ public class TherapistBot extends TelegramLongPollingBot {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
         String username = update.getCallbackQuery().getFrom().getUserName();
 
+        System.out.println("Callback Data: " + callbackData);
+
         try {
             if (callbackData.startsWith("LANGUAGE_")) {
                 String language = callbackData.equals("LANGUAGE_EN") ? "EN" : "RU";
@@ -63,6 +65,8 @@ public class TherapistBot extends TelegramLongPollingBot {
 
             } else if (callbackData.startsWith("EMOTION_")) {
                 String emotion = callbackData.substring("EMOTION_".length());
+                botLogic.recordEmotionForUser(chatId, emotion);
+
                 String currentLanguage = botLogic.getLanguageCommand().getLanguage();
                 String responseText = botLogic.generateEmotionResponse(emotion, currentLanguage);
 
@@ -70,6 +74,15 @@ public class TherapistBot extends TelegramLongPollingBot {
                 response.setChatId(chatId);
                 response.setText(responseText);
                 execute(response);
+
+            } else if ("DAILY_STATS".equals(callbackData)) {
+                SendMessage response = botLogic.handleDailyStatsCommand(chatId);
+                execute(response);
+
+            } else if ("GENERAL_STATS".equals(callbackData)) {
+                SendMessage response = botLogic.handleGeneralStatsCommand(chatId);
+                execute(response);
+
             } else {
                 SendMessage response = new SendMessage();
                 response.setChatId(chatId);

@@ -13,6 +13,14 @@ public class CommandRegistry {
         commands.add(new BotCommand("/start", "Start the bot"));
         commands.add(new BotCommand("/language", "Change language"));
         commands.add(new BotCommand("/emotions", "Show emotions"));
+        commands.add(new BotCommand("/general_stats", "See your general emotion stats"));
+        commands.add(new BotCommand("daily_stats", "See your daily emotion stats "));
         return commands;
+
+
+
+
+
     }
 }
+ 
