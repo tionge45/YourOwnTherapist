@@ -14,6 +14,7 @@ public class CommandRegistry {
         commands.add(new BotCommand("/emotions", "Show emotions"));
         commands.add(new BotCommand("/general_stats", "See your general emotion stats"));
         commands.add(new BotCommand("daily_stats", "See your daily emotion stats "));
+        commands.add(new BotCommand("/clear_emotions", "Clear all saved emotions"));
         return commands;
 
 

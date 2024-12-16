@@ -38,7 +38,9 @@ public class TherapistBot extends TelegramLongPollingBot {
                 case "/emotions" -> response = botLogic.handleLanguageSelection(language, chatId, username);
                 case "/general_stats" -> response = botLogic.handleGeneralStatsCommand(chatId);
                 case "/daily_stats" -> response = botLogic.handleDailyStatsCommand(chatId);
-                default -> {
+                case "/clear_emotions" -> response = botLogic.handleDeletionCommand(chatId);
+
+                    default -> {
                     response = new SendMessage();
                     response.setChatId(chatId);
                     response.setText("Sorry, I didn't understand that. Please use /start, /language, or /emotions.");

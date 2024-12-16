@@ -61,7 +61,7 @@ public class BotLogic {
 
     // Handle general stats command
     public SendMessage handleGeneralStatsCommand(Long chatId) {
-        String generalStats = emotionStats.getGeneralEmotionStats(chatId);
+        String generalStats = emotionStats.getGeneralEmotionStats(chatId, languageCommand.getLanguage());
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(generalStats);
@@ -70,7 +70,7 @@ public class BotLogic {
 
     // Handle daily stats command
     public SendMessage handleDailyStatsCommand(Long chatId) {
-        String dailyStats = emotionStats.getUserEmotionStatsForToday(chatId);
+        String dailyStats = emotionStats.getUserEmotionStatsForToday(chatId, languageCommand.getLanguage());
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(dailyStats);
@@ -78,10 +78,18 @@ public class BotLogic {
     }
 
     public void recordEmotionForUser(Long chatId, String emotion) {
-        emotionStats.recordEmotionForUser(chatId, emotion);
+        emotionStats.recordEmotionForUser(chatId, emotion, languageCommand.getLanguage());
     }
 
     public String generateEmotionResponse(String emotion, String language) {
         return FileReaderUtil.readResponseFromFiles(emotion, language);
+    }
+
+    public SendMessage handleDeletionCommand(Long chatId){
+        String stats = emotionStats.deleteAllEmotionsForUser(chatId, languageCommand.getLanguage());
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText(stats);
+        return message;
     }
 }
